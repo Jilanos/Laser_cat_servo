@@ -52,10 +52,10 @@ void loop() {
       n_fast +=1;
     }
   else{
-  x1 = proba((angle_1-target_1)/delta_1, influence);
-  x2 = proba((angle_2-target_2)/delta_2, influence);
-  //x1 = (random(0, 2) * 2 - 1) ;
-  //x2 = (random(0, 2) * 2 - 1) ;
+    x1 = proba(float(ecart_no_sat(angle_1-target_1,delta_1,7 ))/7, influence);
+    x2 = proba(float(ecart_no_sat(angle_2-target_2,delta_2,4 ))/4, influence);
+ // x1 = proba((angle_1-target_1)/delta_1, influence);
+ // x2 = proba((angle_2-target_2)/delta_2, influence);
     n_fast = 0;
 
 
@@ -108,5 +108,19 @@ int proba(float ecart, int influence)
   else {
     val = -1;
   }
+  return(val);
+}
+
+
+int ecart_no_sat(int ecart,int delta, int seuil){
+  int val = 0;
+  if (ecart > 0){
+    if ((delta - ecart)<seuil){
+      val = seuil-(delta- ecart);
+  }}
+  if (ecart < 0){
+    if ((delta + ecart)<seuil){
+      val = -(seuil-(delta+ ecart));
+  }}
   return(val);
 }
