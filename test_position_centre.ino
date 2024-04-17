@@ -8,7 +8,11 @@ float x1, x2;
 int target_1, target_2, delta_1, delta_2;
 int dur_slow, dur_fast, dt_fast, dt_slow, dt, mode, count, n_consecutif, n_fast;
 int influence;
-//je veux déclarer le tableau
+
+
+unsigned long previousMillis = 0;  // Variable pour stocker le temps écoulé depuis le dernier déclenchement
+unsigned long intervalActivation = 2400000;  // Intervalle de temps entre chaque activation (40 minutes en millisecondes)
+unsigned long dureeActivation = 480000;  // Durée d'activation (10 minutes en millisecondes)
 
 
 void setup() {
@@ -17,8 +21,8 @@ void setup() {
   myServo_1.attach(9);
   myServo_2.attach(10);
   Serial.begin(9600);
-  delta_1 = 30;
-  delta_2 = 15;
+  delta_1 = 28;
+  delta_2 = 14;
   target_1 = 148;
   target_2 = 125;
   angle_1 = target_1;
@@ -32,68 +36,87 @@ void setup() {
   mode = 1;
   n_consecutif = 4;
   influence = 75;
+  previousMillis = millis();
 }
 
 void loop() {
-  if ((count * dt_fast > dur_fast && mode == -1) || (count * dt_slow > dur_slow && mode == 1)){
-    count = 0;
-    mode = mode *-1;
-    if (mode==1){
-      dt = dt_slow;
+  unsigned long currentMillis = millis();
+  if (currentMillis - previousMillis <= dureeActivation) {
+    if ((count * dt_fast > dur_fast && mode == -1) || (count * dt_slow > dur_slow && mode == 1)){
+      count = 0;
+      mode = mode *-1;
+      if (mode==1){
+        dt = dt_slow;
+      }
+      else{
+        dt = dt_fast;
+        n_fast = 0;
+      }
+
     }
+    if (mode==-1 && n_fast < n_consecutif){
+        dt = dt_slow;
+        n_fast +=1;
+      }
     else{
-      dt = dt_fast;
+      x1 = proba(float(ecart_no_sat(angle_1-target_1,delta_1,7 ))/7, influence);
+      x2 = proba(float(ecart_no_sat(angle_2-target_2,delta_2,4 ))/4, influence);
+  // x1 = proba((angle_1-target_1)/delta_1, influence);
+  // x2 = proba((angle_2-target_2)/delta_2, influence);
       n_fast = 0;
+
+
+      }
+    count = count + 1;
+
+    angle_1 = angle_1 + x1;
+    angle_2 = angle_2 + x2;
+    if (angle_1 > target_1+delta_1){
+      angle_1 = target_1+delta_1;
+    }
+    if (angle_2 > target_2+delta_2){
+      angle_2 = target_2+delta_2;
     }
 
-  }
-  if (mode==-1 && n_fast < n_consecutif){
-      dt = dt_slow;
-      n_fast +=1;
+    if (angle_1 < target_1-delta_1){
+      angle_1 = target_1-delta_1;
     }
+    if (angle_2 < target_2-delta_2){
+      angle_2 = target_2-delta_2;
+    }
+
+    
+    Serial.print("A1: ");
+    Serial.print(angle_1);
+    Serial.print(", x1: ");
+    Serial.print(float (angle_1-target_1)/delta_1);
+    Serial.print("°,  A2: ");
+    Serial.print(angle_2);
+    Serial.print(", x2: ");
+    Serial.print(float (angle_2-target_2)/delta_2);
+    Serial.print("°, duree activation: ");
+    Serial.print(dureeActivation);
+    Serial.print("°, previousMillis: ");
+    Serial.print(previousMillis);
+    Serial.print(", current millis: ");
+    Serial.println(currentMillis);
+    myServo_1.write(angle_1);
+    myServo_2.write(angle_2);
+    delay(dt);}
   else{
-    x1 = proba(float(ecart_no_sat(angle_1-target_1,delta_1,7 ))/7, influence);
-    x2 = proba(float(ecart_no_sat(angle_2-target_2,delta_2,4 ))/4, influence);
- // x1 = proba((angle_1-target_1)/delta_1, influence);
- // x2 = proba((angle_2-target_2)/delta_2, influence);
-    n_fast = 0;
-
-
-    }
-  count = count + 1;
-
-  angle_1 = angle_1 + x1;
-  angle_2 = angle_2 + x2;
-  if (angle_1 > target_1+delta_1){
-    angle_1 = target_1+delta_1;
+    Serial.println("BREAK");
+    Serial.print("duree activation: ");
+    Serial.print(dureeActivation);
+    Serial.print("°, previousMillis: ");
+    Serial.print(previousMillis);
+    Serial.print(", current millis: ");
+    Serial.println(currentMillis);
+    digitalWrite(2, LOW);
+    delay(intervalActivation);
+    digitalWrite(2, HIGH);
+    previousMillis = millis();
+    Serial.println("GOOOOOOO");
   }
-  if (angle_2 > target_2+delta_2){
-    angle_2 = target_2+delta_2;
-  }
-
-  if (angle_1 < target_1-delta_1){
-    angle_1 = target_1-delta_1;
-  }
-  if (angle_2 < target_2-delta_2){
-    angle_2 = target_2-delta_2;
-  }
-
-  
-  Serial.print("A1: ");
-  Serial.print(angle_1);
-  Serial.print(", x1: ");
-  Serial.print(float (angle_1-target_1)/delta_1);
-  Serial.print("°,  A2: ");
-  Serial.print(angle_2);
-  Serial.print(", x2: ");
-  Serial.print(float (angle_2-target_2)/delta_2);
-  Serial.print("°, MODE: ");
-  Serial.print(mode);
-  Serial.print(", n_fast: ");
-  Serial.println(n_fast);
-  myServo_1.write(angle_1);
-  myServo_2.write(angle_2);
-  delay(dt);
 }
 
 
